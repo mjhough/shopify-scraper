@@ -10,7 +10,17 @@
 #include "rapidjson/stringbuffer.h"
 
 int parse_json(const char* buf);
-std::string doc_to_json_str(rapidjson::Document);
+std::vector<std::string> results;
+time_t last_checked;
+
+// Dummy function for testing to set last checked to a hardcoded value
+// Maybe should actually read this from a file
+void get_last_checked(void) {
+  struct tm tm;
+  strptime("2020-01-13T0:00:00-05:00", "%Y-%m-%dT%T", &tm);
+  last_checked = mktime(&tm);
+}
+
 
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
   // Receive data from server here
@@ -26,6 +36,8 @@ int main(void) {
   CURL *curl;
   CURLcode res;
   std::string read_buf;
+
+  get_last_checked();
 
   curl = curl_easy_init();
   if(curl) {
@@ -56,7 +68,6 @@ int main(void) {
 
 int parse_json(const char* buf) {
   rapidjson::Document out_json;
-  rapidjson::Document::AllocatorType& alctr = out_json.GetAllocator();
   rapidjson::Document d;
 
   // Parse top level JSON
@@ -80,26 +91,26 @@ int parse_json(const char* buf) {
     t_p = mktime(&tm_p);
     t_u = mktime(&tm_u);
 
-    if (difftime(t_p, t_u) >= 0) {
-      std::cout << "Last update was <= publishing." << std::endl;
-    } else {
-      std::cout << "Updated after publishing." << std::endl;
+
+    // If published after last checked or updated after last checked
+    if (difftime(t_p, last_checked) >= 0) {
+      std::cout << "New product published since last checked." << std::endl;
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);
-      
-      rapidjson::Value out_val;
-      std::string out_str = out_buf.GetString();
-      out_val.SetString(out_str.c_str(), out_str.length(), alctr);
-      out_json.PushBack(out_val, alctr);
+      results.push_back(out_buf.GetString());
+    } else if (difftime(t_u, last_checked) >= 0) {
+      std::cout << "Existing product updated since last checked." << std::endl;
+      rapidjson::StringBuffer out_buf;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
+      product.Accept(writer);
+      results.push_back(out_buf.GetString());
     }
   }
 
-  // Convert document to JSON string and print
-  rapidjson::StringBuffer sb;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-  out_json.Accept(writer);
-  std::cout << sb.GetString() << std::endl;
+  for (int i =0; i < results.size(); i++) {
+    std::cout << results[i] << std::endl;
+  }
 
   // Always return OK for now
   return 0;

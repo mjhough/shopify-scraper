@@ -9,6 +9,13 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
+// TODO: Turn this file into a class called producer or something
+//  - Each producer will be initialized with a link (and page number) and the buffer it produces to. Maybe have a class variable for producer buffer?
+//  - Each producer will have its own thread and will request a page from the site.
+//  - Each producer will store the results as JSON in the producer buffer.
+//  - The producer buffer can be implemented as a queue so that the consumer can read off of it.
+//  - The consumer will take items off of the queue and process them, probably sending curl requests to a discord server or something.
+
 int parse_json(const char* buf);
 std::vector<std::string> results;
 time_t last_checked;

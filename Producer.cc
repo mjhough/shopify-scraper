@@ -1,75 +1,153 @@
-#include <iostream>
-#include <string>
-#include <vector>
-
-#include <curl/curl.h>
 #include <time.h>
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
-class Producer {
-  public:
-    // Constructor
-    Producer(std::string link, int page_num);
+#include "Producer.h"
 
-    // Instance variables
-    std::string link;                                                                         // Link that will be scraped
-    int page_num;                                                                             // Page number of JSON
-    time_t last_checked;                                                                      // Time last checked for updates
-    
-    // Class variables (static members)
-    static std::vector<std::string> results;
-    
-    // Member functions
-    int getPageNum();                                                                         // Gets the page number of the producer instance
-    std::string getLink()                                                                     // Gets the link of the producer instance
-    void getLastChecked();                                                                    // Gets the time the producer instance last checked for updates
+// TODO: Turn this file into a class called producer or something
+//  x Each producer will be initialized with a link (and page number) and the buffer it produces to. Maybe have a class variable for producer buffer?
+//  - Each producer will have its own thread and will request a page from the site.
+//  x Each producer will store the results as JSON in the producer buffer.
+//  x The producer buffer can be implemented as a queue so that the consumer can read off of it.
+//  - The consumer will take items off of the queue and process them, probably sending curl requests to a discord server or something.
 
-  private:
-    // Instance variables
-    std::string read_buf;
+/**** PRODUCER STATIC VARIABLES ****/
+std::queue<std::string> Producer::results;
 
-    // Functions
-    int parseJSON(const char* buf);                                                           // Parses JSON result
-    size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata);               // Libcurl write callback - handles data received from server
-};
 
+/**** PRODUCER STATIC MEMBER FUNCTIONS ****/
+
+/*
+ * Prints the results from the producer buffer of all the instances
+ */
+void Producer::printResults() {
+  for (long unsigned int i=0; i < results.size(); i++) {
+    std::cout << results.front() << std::endl;
+    results.pop();
+  }
+}
+
+
+/**** PRODUCER MEMBER FUNCTIONS ****/
+
+/*
+ * Producer constructor function
+ * Sets the link and page number variables
+ * as well as the time last checked from the setLastChecked()
+ * function.
+ */
 Producer::Producer(std::string link, int page_num) {
   this->link = link;
   this->page_num = page_num;
-  this->last_checked = getLastChecked();
+  setLastChecked();
 }
 
+/*
+ * Sets the curl options.
+ * Returns false if the curl handle is invalid.
+ */
+bool Producer::setCurlOptions(void) {
+  if(curl) {
+    // Set URL and callbacks
+    curl_easy_setopt(curl, CURLOPT_URL, link.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &read_buf);
+
+    // Shopify will block request without useragent
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0");
+
+    // Follow redirects
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    return true;
+  }
+  return false;
+}
+
+/*
+ * Performs the request and calls parseJSON
+ * to parse the result.
+ * Also creates and cleans up the curl handle and
+ * calls setCurlOptions.
+ * Returns the curl response code.
+ */
+int Producer::perform(void) {
+  CURLcode res;
+
+  // Setup curl
+  curl = curl_easy_init();
+
+  // Set curl options
+  setCurlOptions();
+
+  // Send the request
+  res = curl_easy_perform(curl);
+
+  // Cleanup after request
+  curl_easy_cleanup(curl);
+
+  if (res == CURLE_OK) {
+    // Parse what was read if
+    // received good response
+    parseJSON();
+  }
+
+  return res;
+}
+
+/* 
+ * Returns page number assigned to this instance
+ */
 int Producer::getPageNum(void) {
   return page_num;
 }
 
+/* 
+ * Returns link assigned to this instance
+ * Note that many instances will have the same link
+ * since they are scraping multiple pages of the same
+ * site
+ */
 std::string Producer::getLink(void) {
   return link;
 }
 
-// Dummy function for testing to set last checked to a hardcoded value
-// Maybe should actually read this from a file
-void Producer::getLastChecked(void) {
+/*
+ * Sets the last time checked for an update
+ * A dummy value is used here for testing atm
+ * Mayube should read this from a file
+ */
+void Producer::setLastChecked(void) {
   struct tm tm;
   strptime("2020-01-13T0:00:00-05:00", "%Y-%m-%dT%T", &tm);
   last_checked = mktime(&tm);
 }
 
+/*
+ * The write callback is called when we get a response from the
+ * server. It handles the response.
+ * Returns the number of bytes received.
+ */
 size_t Producer::writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata) {
   // Receive data from server here
   ((std::string*)userdata)->append((char*)ptr, size*nmemb);
   return size*nmemb;
 }
 
-int Producer::parseJSON(const char* buf) {
+/*
+ * Parses the JSON result received from the server and
+ * saves updates into the results producer buffer.
+ * TODO: We should also be handling errors here. In case
+ * there is no "products" top level attribute.
+ */
+int Producer::parseJSON(void) {
   rapidjson::Document out_json;
   rapidjson::Document d;
 
   // Parse top level JSON
-  d.Parse(buf);
+  d.Parse(read_buf.c_str());
 
   // Loop through products array and store the ones we want
   // in a vector
@@ -96,71 +174,24 @@ int Producer::parseJSON(const char* buf) {
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);
-      results.push_back(out_buf.GetString());
+      results.push(out_buf.GetString());
     } else if (difftime(t_u, last_checked) >= 0) {
       std::cout << "Existing product updated since last checked." << std::endl;
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);
-      results.push_back(out_buf.GetString());
+      results.push(out_buf.GetString());
     }
-  }
-
-  for (int i =0; i < results.size(); i++) {
-    std::cout << results[i] << std::endl;
   }
 
   // Always return OK for now
   return 0;
 }
 
-// TODO: Turn this file into a class called producer or something
-//  - Each producer will be initialized with a link (and page number) and the buffer it produces to. Maybe have a class variable for producer buffer?
-//  - Each producer will have its own thread and will request a page from the site.
-//  - Each producer will store the results as JSON in the producer buffer.
-//  - The producer buffer can be implemented as a queue so that the consumer can read off of it.
-//  - The consumer will take items off of the queue and process them, probably sending curl requests to a discord server or something.
-
-
-
+/*
+ * The read callback is for sending a request to the server.
+ * We are not sending any requests atm so this is not needed.
+ */
 // size_t read_callback(char *buffer, size_t size, size_t nitems, void *inputdata) {
 //   // Write data to server here
 // }
-
-bool Producer::setCurlOptions(void) {
-  if(curl) {
-    // Set URL and callbacks
-    curl_easy_setopt(curl, CURLOPT_URL, "http://kith.com/products.json?page=1");
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &read_buf);
-
-    // Shopify will block request without useragent
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0");
-
-    // Follow redirects
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-
-    return true;
-  }
-  return false;
-}
-
-
-int Producer::perform(void) {
-  CURLcode res;
-  CURL *curl
-
-  // Setup curl
-  curl = curl_easy_init();
-
-  // Send the request
-  res = curl_easy_perform(curl); // Good here
-
-  // Cleanup after request
-  curl_easy_cleanup(curl);
-
-  // Parse what was read
-  parseJSON(read_buf.c_str());
-
-  return res;
-}

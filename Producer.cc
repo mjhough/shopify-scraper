@@ -167,7 +167,6 @@ int Producer::parseJSON(void) {
     t_p = mktime(&tm_p);
     t_u = mktime(&tm_u);
 
-
     // If published after last checked or updated after last checked
     if (difftime(t_p, last_checked) >= 0) {
       std::cout << "New product published since last checked." << std::endl;

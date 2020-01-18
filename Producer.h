@@ -4,6 +4,10 @@
 
 #include <curl/curl.h>
 
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
 class Producer {
   public:
     // Constructor
@@ -30,13 +34,14 @@ class Producer {
     CURL *curl;
 
     // Class variables (static members)
-    static std::queue<std::string> results;                                                   // Producer buffer. Will probably need to change from private later so
-                                                                                              // that the Consumer can read from it. May need superclass for both.
-                                                                                              // Call it "Worker" or something.
-
+    static std::queue<std::string> results;                                                   /*
+                                                                                               * Producer buffer. Will probably need to change from private later so
+                                                                                               * that the Consumer can read from it. May need superclass for both.
+                                                                                               * Call it "Worker" or something.
+                                                                                               */
     // Functions
     int parseJSON();                                                                          // Parses JSON result
 
     // Static functions
-    static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata);               // Libcurl write callback - handles data received from server
+    static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata);        // Libcurl write callback - handles data received from server
 };

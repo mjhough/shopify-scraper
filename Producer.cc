@@ -7,25 +7,21 @@
 #include "Producer.h"
 
 // TODO: Turn this file into a class called producer or something
-//  x Each producer will be initialized with a link (and page number) and the buffer it produces to. Maybe have a class variable for producer buffer?
+//  x Each producer will be initialized with a link (and page number) and the buffer it produces to. Maybe have a class variable for buffer?
 //  - Each producer will have its own thread and will request a page from the site.
-//  x Each producer will store the results as JSON in the producer buffer.
-//  x The producer buffer can be implemented as a queue so that the consumer can read off of it.
+//  x Each producer will store the results as JSON in the buffer.
+//  x The buffer can be implemented as a queue so that the consumer can read off of it.
 //  - The consumer will take items off of the queue and process them, probably sending curl requests to a discord server or something.
-
-/**** PRODUCER STATIC VARIABLES ****/
-std::queue<std::string> Producer::results;
-
 
 /**** PRODUCER STATIC MEMBER FUNCTIONS ****/
 
 /*
- * Prints the results from the producer buffer of all the instances
+ * Prints the results from the buffer of all the instances
  */
 void Producer::printResults() {
-  for (long unsigned int i=0; i < results.size(); i++) {
-    std::cout << results.front() << std::endl;
-    results.pop();
+  for (long unsigned int i=0; i < buffer.size(); i++) {
+    std::cout << buffer.front() << std::endl;
+    buffer.pop();
   }
 }
 
@@ -138,7 +134,7 @@ size_t Producer::writeCallback(char *ptr, size_t size, size_t nmemb, void *userd
 
 /*
  * Parses the JSON result received from the server and
- * saves updates into the results producer buffer.
+ * saves updates into the results buffer.
  * TODO: We should also be handling errors here. In case
  * there is no "products" top level attribute.
  */
@@ -173,13 +169,13 @@ int Producer::parseJSON(void) {
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);
-      results.push(out_buf.GetString());
+      buffer.push(out_buf.GetString());
     } else if (difftime(t_u, last_checked) >= 0) {
       std::cout << "Existing product updated since last checked." << std::endl;
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);
-      results.push(out_buf.GetString());
+      buffer.push(out_buf.GetString());
     }
   }
 

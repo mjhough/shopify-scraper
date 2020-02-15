@@ -1,5 +1,5 @@
-#ifndef ENCODINGSTEP_H
-#define ENCODINGSTEP_H
+#ifndef SEMAPHORE_H
+#define SEMAPHORE_H
 
 #include <mutex>
 #include <condition_variable>

@@ -13,17 +13,8 @@
 //  x The buffer can be implemented as a queue so that the consumer can read off of it.
 //  - The consumer will take items off of the queue and process them, probably sending curl requests to a discord server or something.
 
-/**** PRODUCER STATIC MEMBER FUNCTIONS ****/
-
-/*
- * Prints the results from the buffer of all the instances
- */
-// void Producer::printResults() {
-//   for (long unsigned int i=0; i < buffer->size(); i++) {
-//     std::cout << buffer->front() << std::endl;
-//     buffer->pop();
-//   }
-// }
+// TODO: This thread should tell the main thread whether or not it received an empty page, signalling we have searched all
+// pages. Then the main thread can stop producing and allow the consumers to die off when they finish.
 
 
 /**** PRODUCER MEMBER FUNCTIONS ****/
@@ -167,7 +158,6 @@ int Producer::parseJSON(void) {
 
     // If published after last checked or updated after last checked
     if (difftime(t_p, last_checked) >= 0) {
-      std::cout << "New product published since last checked." << std::endl;
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);
@@ -176,7 +166,6 @@ int Producer::parseJSON(void) {
       buffer->push(out_buf.GetString());
       items->post();
     } else if (difftime(t_u, last_checked) >= 0) {
-      std::cout << "Existing product updated since last checked." << std::endl;
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);

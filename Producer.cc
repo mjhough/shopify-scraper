@@ -6,13 +6,6 @@
 
 #include "Producer.h"
 
-// TODO: Turn this file into a class called producer or something
-//  x Each producer will be initialized with a link (and page number) and the buffer it produces to. Maybe have a class variable for buffer?
-//  - Each producer will have its own thread and will request a page from the site.
-//  x Each producer will store the results as JSON in the buffer.
-//  x The buffer can be implemented as a queue so that the consumer can read off of it.
-//  - The consumer will take items off of the queue and process them, probably sending curl requests to a discord server or something.
-
 // TODO: This thread should tell the main thread whether or not it received an empty page, signalling we have searched all
 // pages. Then the main thread can stop producing and allow the consumers to die off when they finish.
 

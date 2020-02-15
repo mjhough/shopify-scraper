@@ -18,12 +18,12 @@
 /*
  * Prints the results from the buffer of all the instances
  */
-void Producer::printResults() {
-  for (long unsigned int i=0; i < buffer.size(); i++) {
-    std::cout << buffer.front() << std::endl;
-    buffer.pop();
-  }
-}
+// void Producer::printResults() {
+//   for (long unsigned int i=0; i < buffer->size(); i++) {
+//     std::cout << buffer->front() << std::endl;
+//     buffer->pop();
+//   }
+// }
 
 
 /**** PRODUCER MEMBER FUNCTIONS ****/
@@ -34,9 +34,11 @@ void Producer::printResults() {
  * as well as the time last checked from the setLastChecked()
  * function.
  */
-Producer::Producer(std::string link, int page_num) {
+Producer::Producer(std::string link, int page_num, std::queue<std::string> *buffer, Semaphore *items) {
   this->link = link;
   this->page_num = page_num;
+  this->buffer = buffer;
+  this->items = items;
   setLastChecked();
 }
 
@@ -169,13 +171,19 @@ int Producer::parseJSON(void) {
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);
-      buffer.push(out_buf.GetString());
+
+      // Push item to buffer and increment semaphore
+      buffer->push(out_buf.GetString());
+      items->post();
     } else if (difftime(t_u, last_checked) >= 0) {
       std::cout << "Existing product updated since last checked." << std::endl;
       rapidjson::StringBuffer out_buf;
       rapidjson::Writer<rapidjson::StringBuffer> writer(out_buf);
       product.Accept(writer);
-      buffer.push(out_buf.GetString());
+
+      // Push item to buffer and increment semaphore
+      buffer->push(out_buf.GetString());
+      items->post();
     }
   }
 

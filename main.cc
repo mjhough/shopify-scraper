@@ -2,11 +2,14 @@
 #include <string>
 
 #include "Producer.h"
+#include "Semaphore.h"
 
 int main(int argc, char *argv[]) {
-  Producer p1("http://kith.com/products.json?page=1", 1);
+  std::queue<std::string> *buffer = new std::queue<std::string>();
+  Semaphore *items = new Semaphore(0);
+
+  Producer p1("http://kith.com/products.json?page=1", 1, buffer, items);
   p1.perform();
-  p1.printResults();
 
   return 0;
 }

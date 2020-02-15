@@ -9,7 +9,7 @@
 class Producer : protected Worker {
   public:
     // Constructor
-    Producer(std::string link, int page_num);
+    Producer(std::string link, int page_num, std::queue<std::string> *buffer, Semaphore *items);
 
     // Instance variables
     std::string link;                                                                         // Link that will be scraped

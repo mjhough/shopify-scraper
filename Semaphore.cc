@@ -1,6 +1,6 @@
 #include "Semaphore.h"
 
-Semaphore::Semaphore(int count = 0) {
+Semaphore::Semaphore(int count) {
   this->count = count;
 }
 

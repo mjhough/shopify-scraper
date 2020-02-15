@@ -8,7 +8,7 @@ LDLIBS_CURL = $(shell curl-config --libs)
 LDLIBS= $(LDLIBS_XML2) $(LDLIBS_CURL) -lz -lcurl -lpthread # link with libz, libcurl, and pthreads
 BIN=main
 
-OBJS = main.o Producer.o Worker.o Consumer.o
+OBJS = main.o Producer.o Worker.o Consumer.o Semaphore.o
 
 all: main
 

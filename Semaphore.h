@@ -1,3 +1,6 @@
+#ifndef ENCODINGSTEP_H
+#define ENCODINGSTEP_H
+
 #include <mutex>
 #include <condition_variable>
 
@@ -16,3 +19,5 @@ class Semaphore {
     std::condition_variable cv;
     int count;
 };
+
+#endif

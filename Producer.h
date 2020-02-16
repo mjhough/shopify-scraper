@@ -1,4 +1,5 @@
 #include <curl/curl.h>
+#include <queue>
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -9,11 +10,10 @@
 class Producer : protected Worker {
   public:
     // Constructor
-    Producer(std::string link, int page_num, std::queue<std::string> *buffer, Semaphore *items);
+    Producer(std::string link, int page_num, std::queue<std::string> *buffer, Semaphore *items, std::queue<int> *pids, bool *empty_page_reached);
 
     // Instance variables
     std::string link;                                                                         // Link that will be scraped
-    int page_num;                                                                             // Page number of JSON
     int perform();
     time_t last_checked;                                                                      // Time last checked for updates
     bool setCurlOptions();
@@ -23,13 +23,13 @@ class Producer : protected Worker {
     std::string getLink();                                                                     // Gets the link of the producer instance
     void setLastChecked();                                                                    // Gets the time the producer instance last checked for updates
 
-    // Class functions
-    static void printResults();                                                               // Print the JSON strings from the buffer
-
   private:
     // Instance variables
     std::string read_buf;                                                                     // Buffer to read in results from server
     CURL *curl;
+    int page_num;                                                                             // Page number of JSON
+    bool *empty_page_reached;
+    std::queue<int> *pids;
 
     // Functions
     int parseJSON();                                                                          // Parses JSON result

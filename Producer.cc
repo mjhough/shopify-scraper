@@ -18,11 +18,13 @@
  * as well as the time last checked from the setLastChecked()
  * function.
  */
-Producer::Producer(std::string link, int page_num, std::queue<std::string> *buffer, Semaphore *items) {
+Producer::Producer(std::string link, int page_num, std::queue<std::string> *buffer, Semaphore *items, std::queue<int> *pids, bool *empty_page_reached) {
   this->link = link;
   this->page_num = page_num;
   this->buffer = buffer;
   this->items = items;
+  this->pids = pids;
+  this->empty_page_reached = empty_page_reached;
   setLastChecked();
 }
 
@@ -76,6 +78,7 @@ int Producer::perform(void) {
     parseJSON();
   }
 
+  pids->push(page_num);
   return res;
 }
 
@@ -130,6 +133,9 @@ int Producer::parseJSON(void) {
 
   // Parse top level JSON
   d.Parse(read_buf.c_str());
+
+  if (d["products"].GetArray().Empty())
+    *empty_page_reached = true;
 
   // Loop through products array and store the ones we want
   // in a vector

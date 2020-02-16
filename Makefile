@@ -1,14 +1,14 @@
 CC=g++
 CPPFLAGS_XML2 = $(shell xml2-config --cflags)
 CPPFLAGS_CURL = $(shell curl-config --cflags)
-CPPFLAGS=-Wall -g $(CPPFLAGS_CURL) $(CPPFLAGS_XML2)
+CPPFLAGS=-std=c++11 -Wall -g $(CPPFLAGS_CURL) $(CPPFLAGS_XML2)
 LD=g++
 LDLIBS_XML2 = $(shell xml2-config --libs)
 LDLIBS_CURL = $(shell curl-config --libs)
-LDLIBS= $(LDLIBS_XML2) $(LDLIBS_CURL) -lz -lcurl -lpthread # link with libz, libcurl, and pthreads
+LDLIBS= $(LDLIBS_XML2) $(LDLIBS_CURL) -lcurl -lpthread # link with libz, libcurl, and pthreads
 BIN=main
 
-OBJS = main.o Producer.o Worker.o Consumer.o Semaphore.o
+OBJS = main.o Producer.o Worker.o Consumer.o Semaphore.o ProducerManager.o ConsumerManager.o
 
 all: main
 

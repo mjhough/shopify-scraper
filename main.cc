@@ -1,26 +1,25 @@
 #include <string>
 #include <thread>
 
-#include "Producer.h"
-#include "Consumer.h"
+#include "ProducerManager.h"
+#include "ConsumerManager.h"
 #include "Semaphore.h"
 
 int main(int argc, char *argv[]) {
   std::queue<std::string> *buffer = new std::queue<std::string>();
   Semaphore *items = new Semaphore(0);
+  bool empty_page_reached;
 
-  // Testing with just one producer and one consumer
-  Consumer *c1 = new Consumer(buffer, items);
-  std::thread cth1(&Consumer::perform, c1);
+  // Get the future on this so we can see the number of pages
+  // Pass in the max num threads here
+  ProducerManager pm(buffer, items, &empty_page_reached, 10);
+  std::thread pm_thread(&ProducerManager::run, &pm);
 
-  Producer *p1 = new Producer("http://kith.com/products.json?page=1", 1, buffer, items);
-  std::thread pth1(&Producer::perform, p1);
+  ConsumerManager cm(buffer, items, &empty_page_reached, 5);
+  std::thread cm_thread(&ConsumerManager::run, &cm);
 
-  pth1.join();
-  cth1.join();
-
-  delete c1;
-  delete p1;
+  pm_thread.join();
+  cm_thread.join();
 
   return 0;
 }

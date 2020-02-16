@@ -12,6 +12,7 @@ class Semaphore {
     // Functions
     void post();
     void wait();
+    bool try_wait();
 
   private:
     // Variables

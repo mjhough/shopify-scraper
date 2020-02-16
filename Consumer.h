@@ -4,12 +4,12 @@
 class Consumer : protected Worker {
   public:
     // Constructor
-    Consumer(std::queue<std::string> *buffer, Semaphore *items, int tid, std::queue<int> *tids);
+    Consumer(std::queue<std::string> *buffer, Semaphore *items);
 
     // Functions
     void perform();
+    void stop_thread();
 
   private:
-    int tid;
-    std::queue<int> *tids;
+    bool should_run = true;
 };

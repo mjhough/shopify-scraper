@@ -10,4 +10,4 @@ Run `make` to create the executable `main` file.
 
 ### Usage
 Run `./main <BASE_URL>` where `<BASE_URL>` should be replaced with a shopify website base url. For example,
-```./main http://example.com```
+`./main http://example.com`.
